@@ -66,6 +66,16 @@ Then, in your `claude_desktop_config.json`, add a new MCP server:
 
 You can now launch Claude desktop app and ask to update Todoist.
 
+### SSE
+
+You can also run the server with SSE transport:
+
+```
+npm run start:sse
+```
+
+This will start the server on port 3000. You can then connect to it from your client.
+
 ## Distribution
 
 ### Smithery
