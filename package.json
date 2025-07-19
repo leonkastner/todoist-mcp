@@ -11,7 +11,8 @@
         "build-tsc": "npx tsc",
         "permissions": "node -e \"require('fs').chmodSync('build/index.js', '755')\"",
         "format": "biome check --write",
-        "prepare": "husky || true && npm run build"
+        "prepare": "husky || true && npm run build",
+        "start:sse": "node build/index.js --transport sse"
     },
     "keywords": [
         "ai",
@@ -27,16 +28,22 @@
     "description": "Connect this [Model Context Protocol](https://modelcontextprotocol.io/introduction) server to your LLM to interact with Todoist.",
     "dependencies": {
         "@doist/todoist-api-typescript": "5.0.2",
-        "@modelcontextprotocol/sdk": "1.15.1"
+        "@modelcontextprotocol/sdk": "1.15.1",
+        "cors": "^2.8.5",
+        "express": "^5.1.0"
     },
     "devDependencies": {
         "@biomejs/biome": "2.1.1",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.3",
         "@types/node": "22.16.4",
         "husky": "9.1.7",
         "lint-staged": "16.1.2",
         "typescript": "5.8.3"
     },
     "lint-staged": {
-        "*.{js,ts,json}": ["biome check --write"]
+        "*.{js,ts,json}": [
+            "biome check --write"
+        ]
     }
 }

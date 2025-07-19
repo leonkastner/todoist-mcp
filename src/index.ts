@@ -1,6 +1,9 @@
 import { TodoistApi } from '@doist/todoist-api-typescript'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
+import cors from 'cors'
+import express from 'express'
 import { registerAddComment } from './tools/add-comment.js'
 import { registerAddLabel } from './tools/add-label.js'
 import { registerAddProject } from './tools/add-project.js'
@@ -103,10 +106,50 @@ registerGetSharedLabels(server, api)
 registerRemoveSharedLabel(server, api)
 registerRenameSharedLabel(server, api)
 
+const transports: Record<string, SSEServerTransport> = {}
+
 async function main() {
-    const transport = new StdioServerTransport()
-    await server.connect(transport)
-    console.error('Todoist Agent Server running on stdio')
+    const transportType = process.argv[2] === '--transport' ? process.argv[3] : 'stdio'
+
+    if (transportType === 'stdio') {
+        const transport = new StdioServerTransport()
+        await server.connect(transport)
+        console.error('Todoist Agent Server running on stdio')
+    } else if (transportType === 'sse') {
+        const app = express()
+        app.use(express.json())
+        app.use(cors())
+
+        app.get('/sse', async (req, res) => {
+            const transport = new SSEServerTransport('/messages', res)
+            transports[transport.sessionId] = transport
+
+            req.on('close', () => {
+                delete transports[transport.sessionId]
+                transport.close()
+            })
+
+            await server.connect(transport)
+        })
+
+        app.post('/messages', async (req, res) => {
+            const sessionId = req.query.sessionId as string
+            const transport = transports[sessionId]
+            if (transport) {
+                await transport.handlePostMessage(req, res, req.body)
+            } else {
+                res.status(400).send('No transport found for sessionId')
+            }
+        })
+
+        const port = process.env.PORT || 3000
+        app.listen(port, () => {
+            console.error(`Todoist Agent Server running on http://localhost:${port}`)
+        })
+    } else {
+        console.error(`Unknown transport type: ${transportType}`)
+        process.exit(1)
+    }
 }
 
 main().catch((error) => {
